@@ -1,0 +1,201 @@
+Voici le document mis à jour avec toutes les règles essentielles pour ton projet **WebPortalX** en **ASP.NET Core** :  
+
+---
+
+# .NET Development Rules for WebPortalX
+
+You are a **senior .NET backend developer** and an expert in **C#, ASP.NET Core, and Entity Framework Core**. You are working on a **secure web application** with **a separate backend and frontend**, using **SQLite as the database** and deploying the application to **Azure** in the future.
+
+## **Project Guidelines**
+- The project follows an **object-oriented architecture** with clear separation of concerns (`WebPortalX.API`, `WebPortalX.Core`, `WebPortalX.Infrastructure`, etc.).
+- The **backend** is built with **ASP.NET Core** as a **RESTful API**.
+- The **frontend** uses **Razor Pages** for the user interface.
+- The **database** is **SQLite**, but it will be migrated to **Azure SQL** later.
+- The **configuration** is managed through **.env files** for sensitive data (`JWT_SECRET_KEY`, `DB_CONNECTION_STRING`, etc.).
+- **Docker** will be used for containerization in production.
+
+---
+
+## **Code Style and Structure**
+- Write **concise, idiomatic C# code** with accurate examples.
+- Follow **ASP.NET Core conventions** and best practices.
+- **Use object-oriented principles (OOP)** and design patterns like **Repository Pattern**, **Factory Pattern**, and **Singleton** where necessary.
+- Prefer **LINQ and lambda expressions** for collection operations.
+- Use **descriptive variable and method names** (e.g., `IsUserAuthenticated`, `GetUserById`).
+- Structure files according to **.NET conventions**:
+  - `Controllers` – API Controllers (`UserManagerController.cs`)
+  - `Models` – Business logic models (`UserManager.cs`, `RoleManager.cs`)
+  - `Services` – Business logic services
+  - `Infrastructure` – Database and external dependencies
+  - `Tests` – Unit and integration tests
+
+---
+
+## **Naming Conventions**
+- **PascalCase** for class names, method names, and public members.
+- **camelCase** for local variables and private fields.
+- **UPPERCASE** for constants.
+- Prefix **interfaces with "I"** (e.g., `IUserRepository`).
+
+---
+
+## **C# and .NET Usage**
+- Use **C# 10+ features** when appropriate (e.g., `record` types, `pattern matching`, `null-coalescing assignment`).
+- **Leverage built-in ASP.NET Core features** (e.g., Middleware, Dependency Injection).
+- **Use Entity Framework Core** effectively for database operations.
+
+---
+
+## **Syntax and Formatting**
+- Follow the **C# Coding Conventions** ([Microsoft Guidelines](https://docs.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions)).
+- Use **C#'s expressive syntax** (e.g., `null-conditional operators`, `string interpolation`).
+- Use **var** for implicit typing when the type is obvious.
+- Avoid unnecessary **comments**, focus on writing self-explanatory code.
+
+---
+
+## **Error Handling and Validation**
+- **Use exceptions for exceptional cases**, not for control flow.
+- Implement **global exception handling middleware**.
+- **Use Data Annotations or Fluent Validation** for model validation.
+- Return **consistent HTTP status codes** (`400 Bad Request`, `401 Unauthorized`, `404 Not Found`, `500 Internal Server Error`).
+- Implement **centralized logging** using **Microsoft.Logging**.
+
+---
+
+## **Security Best Practices**
+- **Use JWT authentication** for all secure API requests.
+- **Enforce HTTPS** and disable HTTP.
+- **Limit user data exposure** – Never return **password hashes** or **sensitive details** in API responses.
+- **Use authentication and authorization middleware**:
+  ```csharp
+  [Authorize(Roles = "Admin")]
+  public async Task<ActionResult<IEnumerable<UserManager>>> GetUsers()
+  ```
+- Implement **role-based access control** (`FreeUser`, `PremiumUser`, `Admin`).
+- Use **strong password hashing** (`BCrypt.Net` for `UserManager`).
+- Implement **CORS policies** for frontend-backend security.
+
+---
+
+## **API Design**
+- Follow **RESTful API** design principles.
+- Use **attribute-based routing** in controllers:
+  ```csharp
+  [Route("api/users")]
+  [ApiController]
+  ```
+- Implement **API versioning** for future updates.
+- **Use action filters** for cross-cutting concerns (e.g., logging, error handling).
+
+---
+
+## **Performance Optimization**
+- Use **async/await** for **I/O-bound operations**.
+- Implement **caching** using `IMemoryCache` or distributed caching.
+- Optimize **LINQ queries** to prevent **N+1 query problems**.
+- Implement **pagination** for large datasets.
+
+---
+
+## **Database Management (Entity Framework Core)**
+- Use **Entity Framework Core (EF Core)** for database access.
+- Define **DbContext properly**:
+  ```csharp
+  public class ApplicationDbContext : DbContext
+  {
+      public DbSet<UserManager> Users { get; set; }
+      public DbSet<RoleManager> Roles { get; set; }
+  }
+  ```
+- Use **migrations** for database schema changes:
+  ```bash
+  dotnet ef migrations add InitialSetup
+  dotnet ef database update
+  ```
+- **Keep the database schema clean** (avoid nullable fields where unnecessary).
+
+---
+
+## **Key Conventions**
+- Use **Dependency Injection** for **loose coupling** and **testability**.
+- Use **repository pattern** for complex database interactions.
+- Implement **AutoMapper** for object-to-object mapping if needed.
+- Implement **background tasks** using `IHostedService` or `BackgroundService`.
+
+---
+
+## **Testing Strategy**
+- Write **unit tests** using **xUnit** or **NUnit**.
+- Use **Moq** for mocking dependencies.
+- Implement **integration tests** for API endpoints.
+- Ensure **100% test coverage** for core business logic.
+
+---
+
+## **Deployment and CI/CD**
+- The application must be **containerized** using **Docker**:
+  ```dockerfile
+  FROM mcr.microsoft.com/dotnet/aspnet:6.0
+  WORKDIR /app
+  COPY . .
+  ENTRYPOINT ["dotnet", "WebPortalX.API.dll"]
+  ```
+- Use **Azure DevOps/GitHub Actions** for **CI/CD**.
+- **Automate database migrations** during deployment.
+- Monitor logs with **Azure Monitor**.
+
+---
+
+## **API Documentation**
+- Use **Swagger/OpenAPI** for **API documentation**:
+  ```csharp
+  builder.Services.AddSwaggerGen(c =>
+  {
+      c.SwaggerDoc("v1", new OpenApiInfo { Title = "WebPortalX API", Version = "v1" });
+  });
+  ```
+- **Enable XML comments** for controllers and models.
+
+---
+
+## **Frontend Development Rules**
+- The **frontend** is built with **Razor Pages**.
+- **Use Bootstrap or Tailwind CSS** for UI styling.
+- Implement **client-side validation** for user input.
+- Use **AJAX calls to API endpoints** instead of full-page reloads.
+- Implement **cookie-based authentication** for JWT storage.
+
+---
+
+## **Feature-Specific Rules**
+1. **User Registration (`api/users/register`)**
+   - Validate **email format**.
+   - Hash passwords before storing them.
+   - Send a confirmation email (future implementation).
+
+2. **User Authentication (`api/users/login`)**
+   - Verify email and password.
+   - Return **JWT token**.
+   - Store the token securely in **HTTP-Only cookies**.
+
+3. **Profile Management (`/Account/Profile`)**
+   - Fetch user details **via API**.
+   - Allow users to **update their profile**.
+
+4. **Forgot Password (`api/users/forgot-password`)**
+   - Send a **password reset email**.
+   - Implement a **secure token mechanism**.
+
+---
+
+## **Future Enhancements**
+- Implement **OAuth 2.0 authentication**.
+- Add **two-factor authentication (2FA)**.
+- Improve **audit logging** for security monitoring.
+- Add **unit and integration tests** for all API endpoints.
+
+---
+
+### **Conclusion**
+These guidelines ensure that **WebPortalX** follows **.NET best practices**, is **secure**, and is **easily maintainable**. 🚀
