@@ -1,21 +1,26 @@
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using System;
 
-public class AuthorizeAttribute : TypeFilterAttribute
+public class AuthorizeAttribute : Attribute, IAsyncPageFilter
 {
-    public AuthorizeAttribute() : base(typeof(AuthorizeFilter))
+    public async Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext context, PageHandlerExecutionDelegate next)
     {
-    }
-}
-
-public class AuthorizeFilter : IAsyncAuthorizationFilter
-{
-    public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
-    {
-        if (!context.HttpContext.User.Identity.IsAuthenticated)
+        var isAuthenticated = context.HttpContext.Items["IsAuthenticated"] as bool? ?? false;
+        
+        if (!isAuthenticated)
         {
             context.Result = new RedirectToPageResult("/Account/Login");
+            return;
         }
+
+        await next.Invoke();
+    }
+
+    public Task OnPageHandlerSelectionAsync(PageHandlerSelectedContext context)
+    {
+        return Task.CompletedTask;
     }
 } 
