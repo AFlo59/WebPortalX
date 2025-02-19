@@ -37,30 +37,73 @@ public class ProfileModel : PageModel
         try
         {
             var client = _clientFactory.CreateClient("API");
+            var token = Request.Cookies["AuthToken"];
+            
+            if (string.IsNullOrEmpty(token))
+            {
+                _logger.LogWarning("Token manquant lors de l'accès au profil");
+                return RedirectToPage("/Account/Login");
+            }
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            
+            // Log pour déboguer
+            _logger.LogInformation($"Tentative d'accès au profil avec le token : {token.Substring(0, 10)}...");
+            
+            // Utiliser l'endpoint correct de l'API
             var response = await client.GetAsync("/api/users/profile");
+            
+            // Log de la réponse
+            _logger.LogInformation($"Statut de la réponse API : {response.StatusCode}");
+            var responseContent = await response.Content.ReadAsStringAsync();
+            _logger.LogInformation($"Contenu de la réponse : {responseContent}");
 
             if (response.IsSuccessStatusCode)
             {
-                var userProfile = await response.Content.ReadFromJsonAsync<UserProfileResponse>();
-                if (userProfile != null)
+                try
                 {
-                    UserName = userProfile.UserName;
-                    FirstName = userProfile.FirstName;
-                    LastName = userProfile.LastName;
-                    Email = userProfile.Email;
-                    DateOfBirth = userProfile.DateOfBirth;
-                    Role = userProfile.Role;
+                    var userProfile = JsonSerializer.Deserialize<UserProfileResponse>(responseContent, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                    if (userProfile != null)
+                    {
+                        UserName = userProfile.UserName;
+                        FirstName = userProfile.FirstName;
+                        LastName = userProfile.LastName;
+                        Email = userProfile.Email;
+                        DateOfBirth = userProfile.DateOfBirth;
+                        Role = userProfile.Role;
+                        return Page();
+                    }
+                    else
+                    {
+                        _logger.LogError("La désérialisation du profil a retourné null");
+                    }
                 }
-                return Page();
+                catch (JsonException ex)
+                {
+                    _logger.LogError(ex, "Erreur lors de la désérialisation du profil");
+                }
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                _logger.LogWarning("Token invalide ou expiré");
+                Response.Cookies.Delete("AuthToken");
+                return RedirectToPage("/Account/Login");
             }
 
-            _logger.LogWarning("Erreur lors de la récupération du profil");
-            return RedirectToPage("/Account/Login");
+            _logger.LogError($"Erreur lors de la récupération du profil : {response.StatusCode}");
+            // Ne pas rediriger vers l'index en cas d'erreur
+            Message = "Une erreur est survenue lors de la récupération de votre profil";
+            return Page();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erreur lors de la récupération du profil");
-            return RedirectToPage("/Account/Login");
+            _logger.LogError(ex, "Exception lors de la récupération du profil");
+            Message = "Une erreur inattendue est survenue";
+            return Page();
         }
     }
 

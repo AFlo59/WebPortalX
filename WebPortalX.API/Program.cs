@@ -10,6 +10,8 @@ using Microsoft.OpenApi.Models;
 using WebPortalX.Core.Interfaces;
 using WebPortalX.Core.Models.Settings;
 using System.Runtime.CompilerServices;
+using System.Collections.Generic;
+using WebPortalX.API.Filters;
 
 // Rendre les types internes visibles pour le projet de test
 [assembly: InternalsVisibleTo("WebPortalX.Tests")]
@@ -42,6 +44,34 @@ public class Program
         builder.Services.AddSwaggerGen(c =>
         {
             c.SwaggerDoc("v1", new OpenApiInfo { Title = "WebPortalX API", Version = "v1" });
+            
+            // Ajouter la sécurité JWT à Swagger
+            c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+                Name = "Authorization",
+                In = ParameterLocation.Header,
+                Type = SecuritySchemeType.ApiKey,
+                Scheme = "Bearer"
+            });
+
+            c.AddSecurityRequirement(new OpenApiSecurityRequirement()
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        },
+                        Scheme = "oauth2",
+                        Name = "Bearer",
+                        In = ParameterLocation.Header,
+                    },
+                    new List<string>()
+                }
+            });
         });
 
         Console.WriteLine($"📂 Chemin actuel : {Directory.GetCurrentDirectory()}");
@@ -104,7 +134,10 @@ public class Program
             options.UseSqlite(Environment.GetEnvironmentVariable("DB_CONNECTION_STRING")));
 
         // ✅ Ajouter les services de l'API
-        builder.Services.AddControllers();
+        builder.Services.AddControllers(options =>
+        {
+            options.Filters.Add<AuthorizationFilter>();
+        });
         // ✅ Ajouter les services CORS
         builder.Services.AddCors(options =>
         {
@@ -120,6 +153,7 @@ public class Program
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddScoped<ITokenService, TokenService>();
         builder.Services.AddScoped<IEmailService, EmailService>();
+        builder.Services.AddHttpContextAccessor();
 
         // ✅ Créer l'application
         var app = builder.Build();

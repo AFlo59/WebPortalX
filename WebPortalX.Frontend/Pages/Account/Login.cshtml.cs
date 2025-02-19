@@ -31,13 +31,15 @@ public class LoginModel : PageModel
     private readonly string _apiBaseUrl;
     private readonly IApiService _apiService;
     private readonly ILogger<LoginModel> _logger;
+    private readonly IAuthService _authService;
 
-    public LoginModel(IConfiguration configuration, IApiService apiService, ILogger<LoginModel> logger)
+    public LoginModel(IConfiguration configuration, IApiService apiService, ILogger<LoginModel> logger, IAuthService authService)
     {
         _configuration = configuration;
         _apiBaseUrl = _configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5165";
         _apiService = apiService;
         _logger = logger;
+        _authService = authService;
     }
 
     [BindProperty]
@@ -47,65 +49,47 @@ public class LoginModel : PageModel
     {
         try
         {
-            LoginRequest = new LoginRequest
+            _logger.LogInformation($"Tentative de connexion pour {Email}");
+            
+            var response = await _apiService.PostAsync("/api/users/login", new LoginRequest
             {
                 Email = Email,
                 Password = Password
-            };
+            });
 
-            _logger.LogInformation($"Tentative de connexion pour {LoginRequest.Email}");
-            
-            var response = await _apiService.PostAsync("/api/users/login", LoginRequest);
-            
+            var content = await response.Content.ReadAsStringAsync();
+            _logger.LogInformation($"Réponse de l'API : {content}");
+
             if (response.IsSuccessStatusCode)
             {
-                var content = await response.Content.ReadAsStringAsync();
-                _logger.LogInformation($"Réponse reçue : {content}");
-
-                var loginResponse = JsonSerializer.Deserialize<LoginResponse>(content, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-
+                var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
                 if (loginResponse?.Token == null)
                 {
-                    _logger.LogError("Token manquant dans la réponse");
-                    ModelState.AddModelError(string.Empty, "Erreur lors de la connexion : token manquant");
+                    ModelState.AddModelError(string.Empty, "Erreur lors de la connexion");
                     return Page();
                 }
 
-                // Stocker le token dans un cookie sécurisé
-                Response.Cookies.Append("AuthToken", loginResponse.Token, new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = true,
-                    SameSite = SameSiteMode.Strict,
-                    Expires = RememberMe ? DateTime.UtcNow.AddDays(30) : DateTime.UtcNow.AddHours(1)
-                });
-
-                _logger.LogInformation("Token stocké dans le cookie, redirection vers l'accueil");
+                _authService.StoreToken(loginResponse.Token, RememberMe);
+                
                 TempData["SuccessMessage"] = "Connexion réussie !";
                 return RedirectToPage("/Index");
             }
-            
-            _logger.LogWarning($"Échec de connexion : {response.StatusCode}");
-            var errorContent = await response.Content.ReadAsStringAsync();
-            _logger.LogWarning($"Contenu de l'erreur : {errorContent}");
-            
+
+            _logger.LogWarning($"Échec de connexion : {response.StatusCode} - {content}");
             ModelState.AddModelError(string.Empty, "Email ou mot de passe incorrect");
             return Page();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erreur lors de la connexion");
-            ModelState.AddModelError(string.Empty, $"Une erreur est survenue : {ex.Message}");
+            ModelState.AddModelError(string.Empty, "Une erreur est survenue");
             return Page();
         }
     }
 
     public IActionResult OnPostLogout()
     {
-        Response.Cookies.Delete("AuthToken");
+        _authService.RemoveToken();
         TempData["SuccessMessage"] = "Vous avez été déconnecté avec succès";
         return RedirectToPage("/Index");
     }

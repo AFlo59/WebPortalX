@@ -7,6 +7,7 @@ using WebPortalX.Infrastructure.Data;
 using BC = BCrypt.Net.BCrypt;
 using System.Security.Claims;
 using WebPortalX.Core.Models.Responses;
+using Microsoft.Extensions.Logging;
 
 namespace WebPortalX.Infrastructure.Services
 {
@@ -15,12 +16,14 @@ namespace WebPortalX.Infrastructure.Services
         private readonly ApplicationDbContext _context;
         private readonly ITokenService _tokenService;
         private readonly IEmailService _emailService;
+        private readonly ILogger<UserService> _logger;
 
-        public UserService(ApplicationDbContext context, ITokenService tokenService, IEmailService emailService)
+        public UserService(ApplicationDbContext context, ITokenService tokenService, IEmailService emailService, ILogger<UserService> logger)
         {
             _context = context;
             _tokenService = tokenService;
             _emailService = emailService;
+            _logger = logger;
         }
 
         public async Task<ServiceResult<UserManager>> GetUserByIdAsync(long id)
@@ -69,18 +72,33 @@ namespace WebPortalX.Infrastructure.Services
 
         public async Task<ServiceResult<UserManager>> AuthenticateAsync(string email, string password)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-            
-            if (user == null || !BC.Verify(password, user.PasswordHash))
+            try
             {
-                return ServiceResult<UserManager>.Error("Invalid email or password");
+                _logger.LogInformation($"Tentative d'authentification pour {email}");
+
+                var user = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
+
+                if (user == null)
+                {
+                    _logger.LogWarning($"Utilisateur non trouvé : {email}");
+                    return ServiceResult<UserManager>.Error("Email ou mot de passe incorrect");
+                }
+
+                if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+                {
+                    _logger.LogWarning($"Mot de passe incorrect pour {email}");
+                    return ServiceResult<UserManager>.Error("Email ou mot de passe incorrect");
+                }
+
+                _logger.LogInformation($"Authentification réussie pour {email}");
+                return ServiceResult<UserManager>.Ok(user);
             }
-
-            user.RefreshToken = _tokenService.GenerateRefreshToken();
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-            await _context.SaveChangesAsync();
-
-            return ServiceResult<UserManager>.Ok(user);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Erreur lors de l'authentification de {email}");
+                throw;
+            }
         }
 
         public async Task<ServiceResult<UserManager>> UpdateUserAsync(long userId, UpdateUserRequest request)

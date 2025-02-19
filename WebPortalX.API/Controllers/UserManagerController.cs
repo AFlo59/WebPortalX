@@ -69,30 +69,50 @@ namespace WebPortalX.API.Controllers
             });
         }
 
-        [HttpGet("me")]
+        [HttpGet("profile")]
         [Authorize]
-        public async Task<IActionResult> GetProfile()
+        public async Task<ActionResult<UserProfileResponse>> GetProfile()
         {
-            var userId = User.FindFirst("userId")?.Value;
-            if (string.IsNullOrEmpty(userId))
-                return Unauthorized();
-
-            var result = await _userService.GetUserByIdAsync(long.Parse(userId));
-            if (!result.Success)
-                return NotFound(result.Message);
-
-            return Ok(new UserProfileResponse
+            try
             {
-                UserName = result.Data.UserName,
-                FirstName = result.Data.FirstName,
-                LastName = result.Data.LastName,
-                Email = result.Data.Email,
-                DateOfBirth = result.Data.DateOfBirth,
-                Role = result.Data.Role.ToString(),
-                IsActive = result.Data.IsActive,
-                CreatedAt = result.Data.CreatedAt,
-                UpdatedAt = result.Data.UpdatedAt
-            });
+                _logger.LogInformation("Tentative d'accès au profil");
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("UserId non trouvé dans les claims");
+                    return Unauthorized();
+                }
+
+                _logger.LogInformation($"Récupération du profil pour l'utilisateur {userId}");
+                var result = await _userService.GetUserByIdAsync(long.Parse(userId));
+                
+                if (result.Data == null)
+                {
+                    _logger.LogWarning($"Utilisateur {userId} non trouvé");
+                    return NotFound();
+                }
+
+                var response = new UserProfileResponse
+                {
+                    UserName = result.Data.UserName,
+                    FirstName = result.Data.FirstName,
+                    LastName = result.Data.LastName,
+                    Email = result.Data.Email,
+                    DateOfBirth = result.Data.DateOfBirth,
+                    Role = result.Data.Role.Name,
+                    IsActive = result.Data.IsActive,
+                    CreatedAt = result.Data.CreatedAt,
+                    UpdatedAt = result.Data.UpdatedAt
+                };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erreur lors de la récupération du profil");
+                return StatusCode(500, "Une erreur est survenue lors de la récupération du profil");
+            }
         }
 
         [HttpPost("register")]
@@ -140,31 +160,32 @@ namespace WebPortalX.API.Controllers
         }
 
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            _logger.LogInformation($"Tentative de connexion pour l'email: {request.Email}");
-            
-            if (!ModelState.IsValid)
+            try
             {
-                _logger.LogWarning("Modèle invalide");
-                return BadRequest(ModelState);
-            }
+                _logger.LogInformation($"Tentative de connexion pour {request.Email}");
+                
+                var result = await _userService.AuthenticateAsync(request.Email, request.Password);
+                
+                if (!result.Success)
+                {
+                    _logger.LogWarning($"Échec de connexion pour {request.Email}: {result.Message}");
+                    return Unauthorized(result.Message);
+                }
 
-            var result = await _userService.AuthenticateAsync(request.Email, request.Password);
-            if (!result.Success)
+                var token = _tokenService.GenerateToken(result.Data);
+                
+                _logger.LogInformation($"Connexion réussie pour {request.Email}");
+                
+                return Ok(new { Token = token });
+            }
+            catch (Exception ex)
             {
-                _logger.LogWarning($"Échec de l'authentification: {result.Message}");
-                return Unauthorized(result.Message);
+                _logger.LogError(ex, $"Erreur lors de la connexion pour {request.Email}");
+                return StatusCode(500, "Une erreur est survenue lors de la connexion");
             }
-
-            var token = _tokenService.GenerateToken(result.Data);
-            _logger.LogInformation("Connexion réussie");
-            
-            return Ok(new LoginResponse 
-            { 
-                Token = token,
-                ExpiresAt = DateTime.UtcNow.AddHours(1)
-            });
         }
 
         [Authorize]
@@ -209,6 +230,65 @@ namespace WebPortalX.API.Controllers
                 return BadRequest(result.Message);
 
             return Ok(new { Message = "Mot de passe réinitialisé avec succès" });
+        }
+
+        [HttpGet("validate-token")]
+        [Authorize]
+        public IActionResult ValidateToken()
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("Token invalide : UserId non trouvé");
+                    return Unauthorized();
+                }
+
+                _logger.LogInformation($"Token validé pour l'utilisateur {userId}");
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erreur lors de la validation du token");
+                return StatusCode(500);
+            }
+        }
+
+        [HttpPost("refresh-token")]
+        [Authorize]
+        public async Task<IActionResult> RefreshToken()
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
+                var user = await _userService.GetUserByIdAsync(long.Parse(userId));
+                if (user.Data == null)
+                {
+                    return NotFound();
+                }
+
+                var newToken = _tokenService.GenerateToken(user.Data);
+                return Ok(new { Token = newToken });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erreur lors du rafraîchissement du token");
+                return StatusCode(500);
+            }
+        }
+
+        [HttpGet("debug-users")]
+        [AllowAnonymous]
+        public async Task<IActionResult> DebugUsers()
+        {
+            var users = await _context.Users.Select(u => new { u.Email, u.PasswordHash }).ToListAsync();
+            return Ok(users);
         }
     }
 
