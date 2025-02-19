@@ -3,12 +3,13 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 
 namespace WebPortalX.Frontend.Services
 {
     public interface IApiService
     {
-        Task<HttpResponseMessage> GetAsync(string endpoint, string token = null);
+        Task<HttpResponseMessage> GetAsync(string endpoint);
         Task<HttpResponseMessage> PostAsync<T>(string endpoint, T data, string token = null);
         Task<HttpResponseMessage> PutAsync<T>(string endpoint, T data, string token = null);
         Task<HttpResponseMessage> DeleteAsync(string endpoint, string token = null);
@@ -19,17 +20,40 @@ namespace WebPortalX.Frontend.Services
         private readonly HttpClient _httpClient;
         private const string API_BASE_URL = "http://localhost:5165";
         private readonly ILogger<ApiService> _logger;
+        private readonly IHttpClientFactory _clientFactory;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public ApiService(IHttpClientFactory httpClientFactory, ILogger<ApiService> logger)
+        public ApiService(IHttpClientFactory clientFactory, ILogger<ApiService> logger, IHttpContextAccessor httpContextAccessor)
         {
-            _httpClient = httpClientFactory.CreateClient("API");
+            _httpClient = clientFactory.CreateClient("API");
             _logger = logger;
+            _clientFactory = clientFactory;
+            _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<HttpResponseMessage> GetAsync(string endpoint, string token = null)
+        public async Task<HttpResponseMessage> GetAsync(string endpoint)
         {
-            SetAuthorizationHeader(token);
-            return await _httpClient.GetAsync($"{API_BASE_URL}{endpoint}");
+            try
+            {
+                var client = _clientFactory.CreateClient("API");
+                var token = _httpContextAccessor.HttpContext?.Request.Cookies["WebPortalX.Auth"];
+
+                if (!string.IsNullOrEmpty(token))
+                {
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                }
+
+                _logger.LogInformation($"Envoi de requête GET à {endpoint}");
+                var response = await client.GetAsync(endpoint);
+                _logger.LogInformation($"Réponse reçue : {response.StatusCode}");
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Erreur lors de l'appel GET à {endpoint}");
+                throw;
+            }
         }
 
         public async Task<HttpResponseMessage> PostAsync<T>(string endpoint, T data, string token = null)

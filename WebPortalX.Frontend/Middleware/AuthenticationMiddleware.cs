@@ -9,32 +9,24 @@ namespace WebPortalX.Frontend.Middleware
     {
         private readonly RequestDelegate _next;
         private readonly ILogger<AuthenticationMiddleware> _logger;
-        private readonly IServiceScopeFactory _scopeFactory;
+
         private readonly string[] _publicPaths = new[] 
         { 
             "/",
             "/index",
             "/account/login", 
-            "/account/register", 
+            "/account/register",
             "/account/forgotpassword",
-            "/account/resetpassword",
-            "/account/verifyemail",
-            "/privacy",
-            "/lib",
+            "/images",
             "/css",
             "/js",
-            "/images",
-            "/favicon.ico"
+            "/lib"
         };
 
-        public AuthenticationMiddleware(
-            RequestDelegate next,
-            ILogger<AuthenticationMiddleware> logger,
-            IServiceScopeFactory scopeFactory)
+        public AuthenticationMiddleware(RequestDelegate next, ILogger<AuthenticationMiddleware> logger)
         {
             _next = next;
             _logger = logger;
-            _scopeFactory = scopeFactory;
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -42,47 +34,29 @@ namespace WebPortalX.Frontend.Middleware
             var path = context.Request.Path.Value?.ToLower() ?? "";
             _logger.LogInformation($"Requête vers : {path}");
 
+            var token = context.Request.Cookies["WebPortalX.Auth"];
+            
+            // Ajouter l'état d'authentification au contexte
+            context.Items["IsAuthenticated"] = !string.IsNullOrEmpty(token);
+
+            // Si c'est un chemin public, on continue sans vérification
             if (_publicPaths.Any(p => path.StartsWith(p)))
             {
                 await _next(context);
                 return;
             }
 
-            // Créer un scope pour résoudre le service
-            using (var scope = _scopeFactory.CreateScope())
+            // Vérifier l'authentification pour les chemins protégés
+            if (string.IsNullOrEmpty(token))
             {
-                var authService = scope.ServiceProvider.GetRequiredService<IAuthService>();
-
-                var token = authService.GetToken();
-                if (string.IsNullOrEmpty(token))
-                {
-                    _logger.LogWarning($"Accès non autorisé à {path} - Token manquant");
-                    context.Response.Redirect("/Account/Login");
-                    return;
-                }
-
-                var isValid = await authService.ValidateTokenAsync(token);
-                if (!isValid)
-                {
-                    _logger.LogWarning("Token invalide, tentative de rafraîchissement");
-                    var newToken = await authService.RefreshTokenAsync(token);
-                    if (string.IsNullOrEmpty(newToken))
-                    {
-                        authService.RemoveToken();
-                        context.Response.Redirect("/Account/Login");
-                        return;
-                    }
-                    authService.StoreToken(newToken, true);
-                    token = newToken;
-                }
-
-                if (!context.Request.Headers.ContainsKey("Authorization"))
-                {
-                    context.Request.Headers["Authorization"] = $"Bearer {token}";
-                }
-
-                await _next(context);
+                _logger.LogWarning($"Accès non autorisé à {path} - Token manquant");
+                context.Response.Redirect("/Account/Login");
+                return;
             }
+
+            // Token présent, on l'ajoute aux headers
+            context.Request.Headers["Authorization"] = $"Bearer {token}";
+            await _next(context);
         }
     }
 

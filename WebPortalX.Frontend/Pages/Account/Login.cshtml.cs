@@ -49,40 +49,33 @@ public class LoginModel : PageModel
     {
         try
         {
-            _logger.LogInformation($"Tentative de connexion pour {Email}");
-            
-            var response = await _apiService.PostAsync("/api/users/login", new LoginRequest
+            if (!ModelState.IsValid)
             {
-                Email = Email,
-                Password = Password
-            });
+                return Page();
+            }
 
-            var content = await response.Content.ReadAsStringAsync();
-            _logger.LogInformation($"Réponse de l'API : {content}");
+            _logger.LogInformation($"Tentative de connexion pour {Email}");
+
+            var loginRequest = new LoginRequest { Email = Email, Password = Password };
+            var response = await _apiService.PostAsync("/api/users/login", loginRequest);
 
             if (response.IsSuccessStatusCode)
             {
-                var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
-                if (loginResponse?.Token == null)
+                var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+                if (result?.Token != null)
                 {
-                    ModelState.AddModelError(string.Empty, "Erreur lors de la connexion");
-                    return Page();
+                    await _authService.StoreTokenAsync(result.Token);
+                    return RedirectToPage("/Index");
                 }
-
-                _authService.StoreToken(loginResponse.Token, RememberMe);
-                
-                TempData["SuccessMessage"] = "Connexion réussie !";
-                return RedirectToPage("/Index");
             }
 
-            _logger.LogWarning($"Échec de connexion : {response.StatusCode} - {content}");
             ModelState.AddModelError(string.Empty, "Email ou mot de passe incorrect");
             return Page();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erreur lors de la connexion");
-            ModelState.AddModelError(string.Empty, "Une erreur est survenue");
+            ModelState.AddModelError(string.Empty, "Une erreur est survenue lors de la connexion");
             return Page();
         }
     }

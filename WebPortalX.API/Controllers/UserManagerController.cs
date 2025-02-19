@@ -52,20 +52,22 @@ namespace WebPortalX.API.Controllers
         public async Task<ActionResult<UserManager>> GetUser(long id)
         {
             var result = await _userService.GetUserByIdAsync(id);
-            if (!result.Success)
+            if (!result.Success || result.Data == null)
+            {
                 return NotFound(result.Message);
+            }
 
             return Ok(new
             {
-                result.Data.UserName,
-                result.Data.FirstName,
-                result.Data.LastName,
-                result.Data.Email,
-                result.Data.DateOfBirth,
-                result.Data.Role,
-                result.Data.IsActive,
-                result.Data.CreatedAt,
-                result.Data.UpdatedAt
+                UserName = result.Data.UserName,
+                FirstName = result.Data.FirstName,
+                LastName = result.Data.LastName,
+                Email = result.Data.Email,
+                DateOfBirth = result.Data.DateOfBirth,
+                Role = result.Data.Role?.Name ?? "User",
+                IsActive = result.Data.IsActive,
+                CreatedAt = result.Data.CreatedAt,
+                UpdatedAt = result.Data.UpdatedAt
             });
         }
 
@@ -75,43 +77,32 @@ namespace WebPortalX.API.Controllers
         {
             try
             {
-                _logger.LogInformation("Tentative d'accès au profil");
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                
                 if (string.IsNullOrEmpty(userId))
                 {
-                    _logger.LogWarning("UserId non trouvé dans les claims");
                     return Unauthorized();
                 }
 
-                _logger.LogInformation($"Récupération du profil pour l'utilisateur {userId}");
-                var result = await _userService.GetUserByIdAsync(long.Parse(userId));
-                
-                if (result.Data == null)
+                var result = await _userService.GetUserByIdAsync(int.Parse(userId));
+                if (!result.Success || result.Data == null)
                 {
-                    _logger.LogWarning($"Utilisateur {userId} non trouvé");
                     return NotFound();
                 }
 
-                var response = new UserProfileResponse
+                return Ok(new UserProfileResponse
                 {
                     UserName = result.Data.UserName,
                     FirstName = result.Data.FirstName,
                     LastName = result.Data.LastName,
                     Email = result.Data.Email,
                     DateOfBirth = result.Data.DateOfBirth,
-                    Role = result.Data.Role.Name,
-                    IsActive = result.Data.IsActive,
-                    CreatedAt = result.Data.CreatedAt,
-                    UpdatedAt = result.Data.UpdatedAt
-                };
-
-                return Ok(response);
+                    Role = result.Data.Role?.Name ?? "User"
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Erreur lors de la récupération du profil");
-                return StatusCode(500, "Une erreur est survenue lors de la récupération du profil");
+                return StatusCode(500, "Une erreur est survenue");
             }
         }
 
@@ -267,13 +258,13 @@ namespace WebPortalX.API.Controllers
                     return Unauthorized();
                 }
 
-                var user = await _userService.GetUserByIdAsync(long.Parse(userId));
-                if (user.Data == null)
+                var userResult = await _userService.GetUserByIdAsync(long.Parse(userId));
+                if (!userResult.Success || userResult.Data == null)
                 {
                     return NotFound();
                 }
 
-                var newToken = _tokenService.GenerateToken(user.Data);
+                var newToken = _tokenService.GenerateToken(userResult.Data);
                 return Ok(new { Token = newToken });
             }
             catch (Exception ex)

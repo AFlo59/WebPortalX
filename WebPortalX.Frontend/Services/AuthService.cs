@@ -12,7 +12,7 @@ public interface IAuthService
 {
     Task<bool> ValidateTokenAsync(string token);
     Task<string> RefreshTokenAsync(string token);
-    void StoreToken(string token, bool rememberMe);
+    Task StoreTokenAsync(string token);
     void RemoveToken();
     string GetToken();
 }
@@ -49,17 +49,27 @@ public class AuthService : IAuthService
         }
     }
 
-    public void StoreToken(string token, bool rememberMe)
+    public async Task StoreTokenAsync(string token)
     {
-        var cookieOptions = new CookieOptions
+        try
         {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Lax,
-            Expires = rememberMe ? DateTime.UtcNow.AddDays(30) : DateTime.UtcNow.AddHours(1)
-        };
+            _logger.LogInformation("Stockage du token");
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTime.UtcNow.AddHours(1)
+            };
 
-        _httpContextAccessor.HttpContext?.Response.Cookies.Append("WebPortalX.Auth", token, cookieOptions);
+            _httpContextAccessor.HttpContext?.Response.Cookies.Append("WebPortalX.Auth", token, cookieOptions);
+            _logger.LogInformation("Token stocké avec succès");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erreur lors du stockage du token");
+            throw;
+        }
     }
 
     public void RemoveToken()

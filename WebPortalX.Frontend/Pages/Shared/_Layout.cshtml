@@ -10,17 +10,14 @@
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-dark bg-dark border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container">
-                <a class="navbar-brand" asp-page="/Index">
-                    <img src="~/images/logo.png" width="30" height="30" class="d-inline-block align-top me-2">
-                    RPG Portal
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse">
+                <a class="navbar-brand" href="/">WebPortalX</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
                         <li class="nav-item">
                             <a class="nav-link" asp-page="/Index">Accueil</a>
                         </li>
@@ -30,34 +27,38 @@
                         <li class="nav-item">
                             <a class="nav-link" asp-page="/Community">Communauté</a>
                         </li>
+                        @inject IHttpContextAccessor HttpContextAccessor
+                        @{
+                            var isAuthenticated = HttpContextAccessor.HttpContext?.Items["IsAuthenticated"] as bool? ?? false;
+                        }
+
+                        @if (isAuthenticated)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                    Mon Compte
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="/Account/Profile">Mon Profil</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form method="post" action="/Account/Profile?handler=Logout">
+                                            <button type="submit" class="dropdown-item">Déconnexion</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" href="/Account/Login">Connexion</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/Account/Register">Inscription</a>
+                            </li>
+                        }
                     </ul>
-                    
-                    @if (Context.Request.Cookies.ContainsKey("AuthToken"))
-                    {
-                        <div class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                                <img src="~/images/avatar.png" class="rounded-circle" width="24" height="24">
-                                <span class="ms-2">Mon Compte</span>
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" asp-page="/Account/Profile">Mon Profil</a></li>
-                                <li><a class="dropdown-item" asp-page="/Account/Characters">Mes Personnages</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <form method="post" asp-page="/Account/Login" asp-page-handler="Logout" class="d-inline">
-                                        <button type="submit" class="dropdown-item text-danger">Se déconnecter</button>
-                                    </form>
-                                </li>
-                            </ul>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="nav-item">
-                            <a class="btn btn-outline-primary me-2" asp-page="/Account/Login">Connexion</a>
-                            <a class="btn btn-primary" asp-page="/Account/Register">Inscription</a>
-                        </div>
-                    }
                 </div>
             </div>
         </nav>
