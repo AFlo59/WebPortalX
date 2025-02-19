@@ -32,18 +32,22 @@
                         </li>
                     </ul>
                     
-                    @if (User.Identity.IsAuthenticated)
+                    @if (Context.Request.Cookies.ContainsKey("AuthToken"))
                     {
                         <div class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
                                 <img src="~/images/avatar.png" class="rounded-circle" width="24" height="24">
-                                @User.Identity.Name
+                                <span class="ms-2">Mon Compte</span>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" asp-page="/Account/Profile">Mon Profil</a></li>
                                 <li><a class="dropdown-item" asp-page="/Account/Characters">Mes Personnages</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item text-danger" asp-page="/Account/Logout">Se déconnecter</a></li>
+                                <li>
+                                    <form method="post" asp-page="/Account/Login" asp-page-handler="Logout" class="d-inline">
+                                        <button type="submit" class="dropdown-item text-danger">Se déconnecter</button>
+                                    </form>
+                                </li>
                             </ul>
                         </div>
                     }

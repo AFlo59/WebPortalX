@@ -102,6 +102,13 @@ public class LoginModel : PageModel
             return Page();
         }
     }
+
+    public IActionResult OnPostLogout()
+    {
+        Response.Cookies.Delete("AuthToken");
+        TempData["SuccessMessage"] = "Vous avez été déconnecté avec succès";
+        return RedirectToPage("/Index");
+    }
 }
 
 public class LoginResponse
