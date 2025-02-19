@@ -1,0 +1,47 @@
+:root {
+    --primary-color: #7C4DFF;
+    --secondary-color: #2C3E50;
+    --accent-color: #FF6B6B;
+    --background-dark: #1A1A2E;
+    --text-light: #E0E0E0;
+}
+
+body {
+    background-color: var(--background-dark);
+    color: var(--text-light);
+    font-family: 'Roboto', sans-serif;
+}
+
+.navbar {
+    background-color: rgba(26, 26, 46, 0.95) !important;
+    backdrop-filter: blur(10px);
+}
+
+.card {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.hero-section {
+    background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
+                url('/images/hero-bg.jpg') center/cover;
+    padding: 100px 0;
+    margin-bottom: 50px;
+}
+
+.form-control {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+}
+
+.profile-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 20px;
+} 

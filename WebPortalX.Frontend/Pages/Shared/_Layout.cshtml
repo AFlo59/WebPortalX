@@ -10,31 +10,50 @@
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-sm navbar-dark bg-dark border-bottom box-shadow mb-3">
             <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">WebPortalX.Frontend</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+                <a class="navbar-brand" asp-page="/Index">
+                    <img src="~/images/logo.png" width="30" height="30" class="d-inline-block align-top me-2">
+                    RPG Portal
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Accueil</a>
+                            <a class="nav-link" asp-page="/Index">Accueil</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Account/Login">Connexion</a>
+                            <a class="nav-link" asp-page="/Games">Jeux</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Account/Register">Inscription</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Account/Profile">Profil</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
+                            <a class="nav-link" asp-page="/Community">Communauté</a>
                         </li>
                     </ul>
+                    
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        <div class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                <img src="~/images/avatar.png" class="rounded-circle" width="24" height="24">
+                                @User.Identity.Name
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" asp-page="/Account/Profile">Mon Profil</a></li>
+                                <li><a class="dropdown-item" asp-page="/Account/Characters">Mes Personnages</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" asp-page="/Account/Logout">Se déconnecter</a></li>
+                            </ul>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="nav-item">
+                            <a class="btn btn-outline-primary me-2" asp-page="/Account/Login">Connexion</a>
+                            <a class="btn btn-primary" asp-page="/Account/Register">Inscription</a>
+                        </div>
+                    }
                 </div>
             </div>
         </nav>
