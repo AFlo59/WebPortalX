@@ -24,7 +24,7 @@ public partial class Program
         var builder = WebApplication.CreateBuilder(args);
 
         // Configurer l'URL d'écoute
-        builder.WebHost.UseUrls("http://localhost:5165");
+        builder.WebHost.UseUrls("http://localhost:5166");
 
         // Charger les variables d'environnement depuis .env
         var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
@@ -130,6 +130,43 @@ public partial class Program
         builder.Services.AddScoped<IEmailService, EmailService>();
         builder.Services.AddHttpContextAccessor();
 
+        // ✅ Ajouter ces services avant var app = builder.Build();
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen(c =>
+        {
+            c.SwaggerDoc("v1", new OpenApiInfo
+            {
+                Title = "WebPortalX API",
+                Version = "v1",
+                Description = "API pour WebPortalX"
+            });
+
+            // Configuration JWT pour Swagger
+            c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Description = "JWT Authorization header using the Bearer scheme.",
+                Name = "Authorization",
+                In = ParameterLocation.Header,
+                Type = SecuritySchemeType.ApiKey,
+                Scheme = "Bearer"
+            });
+
+            c.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                    },
+                    Array.Empty<string>()
+                }
+            });
+        });
+
         // ✅ Créer l'application
         var app = builder.Build();
 
@@ -140,15 +177,9 @@ public partial class Program
             {
                 var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 
-                // Créer la base de données et appliquer les migrations
-                if (db.Database.EnsureCreated())
-                {
-                    Console.WriteLine("✅ Base de données créée");
-                }
-                
-                // Initialiser les données
+                // Appliquer les migrations et initialiser les données
                 await DbInitializer.Initialize(app.Services);
-                Console.WriteLine("✅ Données initiales créées");
+                Console.WriteLine("✅ Base de données initialisée");
             }
             catch (Exception ex)
             {
@@ -164,7 +195,10 @@ public partial class Program
         if (app.Environment.IsDevelopment())
         {
             app.UseSwagger();
-            app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "WebPortalX API V1"));
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "WebPortalX API V1");
+            });
         }
         // ✅ Activation du CORS
         app.UseCors("AllowFrontend");

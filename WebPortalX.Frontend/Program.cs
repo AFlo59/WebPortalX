@@ -13,7 +13,7 @@ builder.Services.AddHttpContextAccessor();
 // Configuration du client HTTP
 builder.Services.AddHttpClient("API", client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5165/");
+    client.BaseAddress = new Uri("http://localhost:5166/");
 });
 
 // Services personnalisés
@@ -76,3 +76,5 @@ app.UseErrorHandling();
 app.MapRazorPages();
 
 app.Run();
+
+builder.WebHost.UseUrls("http://localhost:5076");
