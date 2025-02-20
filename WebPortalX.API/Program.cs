@@ -101,7 +101,7 @@ public class Program
         var jwtExpiry = int.Parse(Environment.GetEnvironmentVariable("JWT_EXPIRY_MINUTES") ?? "60");
         var dbConnectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING") ?? "Data Source=webportalx.db";
 
-        // Configuration du JWT avec la clé secrète depuis .env
+        // Configuration du JWT
         builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
@@ -111,13 +111,22 @@ public class Program
                     ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    ValidIssuer = builder.Configuration["JWT:Issuer"],
-                    ValidAudience = builder.Configuration["JWT:Audience"],
+                    ValidIssuer = jwtIssuer,
+                    ValidAudience = jwtAudience,
                     IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET_KEY"))
+                        Encoding.UTF8.GetBytes(jwtSecret)
                     )
                 };
             });
+
+        // Configuration JWT pour l'injection de dépendances
+        builder.Services.Configure<JwtSettings>(options =>
+        {
+            options.SecretKey = jwtSecret;
+            options.Issuer = jwtIssuer;
+            options.Audience = jwtAudience;
+            options.ExpiryMinutes = jwtExpiry;
+        });
 
         // Configuration de l'email avec les credentials depuis .env
         builder.Services.Configure<EmailSettings>(options =>
@@ -177,10 +186,7 @@ public class Program
         if (app.Environment.IsDevelopment())
         {
             app.UseSwagger();
-            app.UseSwaggerUI(c =>
-            {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "WebPortalX API V1");
-            });
+            app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "WebPortalX API V1"));
         }
         // ✅ Activation du CORS
         app.UseCors("AllowFrontend");
@@ -194,5 +200,12 @@ public class Program
         app.MapControllers();
         // ✅ Créer la base de données
         app.Run();
+
+        // Après la configuration JWT
+        Console.WriteLine("Configuration JWT :");
+        Console.WriteLine($"- Issuer: {jwtIssuer}");
+        Console.WriteLine($"- Audience: {jwtAudience}");
+        Console.WriteLine($"- Expiry: {jwtExpiry} minutes");
+        Console.WriteLine($"- Secret Key Length: {jwtSecret?.Length ?? 0} caractères");
     }
 }

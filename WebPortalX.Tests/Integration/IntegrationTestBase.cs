@@ -5,6 +5,8 @@ using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using WebPortalX.Core.Models.Responses;
 using WebPortalX.Core.Models;
+using System.Text.Json;
+using WebPortalX.Core.Models.Requests;
 
 namespace WebPortalX.Tests.Integration
 {
@@ -30,14 +32,33 @@ namespace WebPortalX.Tests.Integration
 
         private async Task<string> GetJwtAsync()
         {
-            var response = await Client.PostAsJsonAsync("/api/users/login", new
+            var loginRequest = new LoginRequest
             {
                 Email = "test@example.com",
                 Password = "Test123!"
-            });
+            };
 
-            var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
-            return loginResponse.Token;
+            var response = await Client.PostAsJsonAsync("/api/users/login", loginRequest);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Login failed: {response.StatusCode}, {error}");
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            try 
+            {
+                var loginResponse = JsonSerializer.Deserialize<LoginResponse>(content, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                return loginResponse?.Token ?? throw new Exception("Token not received");
+            }
+            catch (JsonException ex)
+            {
+                throw new Exception($"Failed to parse response: {content}", ex);
+            }
         }
     }
 } 

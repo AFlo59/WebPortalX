@@ -18,7 +18,7 @@ namespace WebPortalX.Tests.Integration
         public async Task Register_WithValidData_ShouldSucceed()
         {
             // Arrange
-            var request = new UserRegisterRequest
+            var request = new RegisterRequest
             {
                 UserName = "testuser",
                 FirstName = "Test",
@@ -61,7 +61,7 @@ namespace WebPortalX.Tests.Integration
         public async Task GetProfile_WithoutAuth_ShouldReturnUnauthorized()
         {
             // Act
-            var response = await Client.GetAsync("/api/users/me");
+            var response = await Client.GetAsync("/api/users/profile");
 
             // Assert
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -74,7 +74,7 @@ namespace WebPortalX.Tests.Integration
             await AuthenticateAsync();
 
             // Act
-            var response = await Client.GetAsync("/api/users/me");
+            var response = await Client.GetAsync("/api/users/profile");
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);

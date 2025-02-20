@@ -129,7 +129,7 @@ namespace WebPortalX.API.Controllers
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                     EmailVerified = false,
-                    Role = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "FreeUser")
+                    Role = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "User")
                 };
 
                 user.SetPassword(request.Password);
@@ -158,6 +158,17 @@ namespace WebPortalX.API.Controllers
             {
                 _logger.LogInformation($"Tentative de connexion pour {request.Email}");
                 
+                // Vérifier si l'utilisateur existe
+                var user = await _context.Users
+                    .Include(u => u.Role)
+                    .FirstOrDefaultAsync(u => u.Email == request.Email);
+                    
+                if (user == null)
+                {
+                    _logger.LogWarning($"Utilisateur non trouvé: {request.Email}");
+                    return Unauthorized("Email ou mot de passe incorrect");
+                }
+
                 var result = await _userService.AuthenticateAsync(request.Email, request.Password);
                 
                 if (!result.Success)
@@ -170,7 +181,11 @@ namespace WebPortalX.API.Controllers
                 
                 _logger.LogInformation($"Connexion réussie pour {request.Email}");
                 
-                return Ok(new { Token = token });
+                return Ok(new LoginResponse 
+                { 
+                    Token = token,
+                    Message = "Connexion réussie"
+                });
             }
             catch (Exception ex)
             {
@@ -180,21 +195,29 @@ namespace WebPortalX.API.Controllers
         }
 
         [Authorize]
-        [HttpPut("update")]
+        [HttpPut("profile")]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateUserRequest request)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            try 
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
 
-            var userId = User.FindFirst("userId")?.Value;
-            if (string.IsNullOrEmpty(userId))
-                return Unauthorized();
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
 
-            var result = await _userService.UpdateUserAsync(long.Parse(userId), request);
-            if (!result.Success)
-                return BadRequest(result.Message);
+                var result = await _userService.UpdateUserAsync(long.Parse(userId), request);
+                if (!result.Success)
+                    return BadRequest(result.Message);
 
-            return Ok(new { Message = "Profil mis à jour avec succès" });
+                return Ok(new { Message = "Profil mis à jour avec succès" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erreur lors de la mise à jour du profil");
+                return StatusCode(500, "Une erreur est survenue");
+            }
         }
 
         [HttpPost("forgot-password")]

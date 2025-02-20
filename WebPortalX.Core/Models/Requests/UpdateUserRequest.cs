@@ -4,20 +4,19 @@ namespace WebPortalX.Core.Models.Requests
 {
     public class UpdateUserRequest
     {
-        [Required(ErrorMessage = "Le nom d'utilisateur est requis")]
+        [Required]
         public string UserName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Le prénom est requis")]
+        [Required]
         public string FirstName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Le nom est requis")]
+        [Required]
         public string LastName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "L'email est requis")]
-        [EmailAddress(ErrorMessage = "Format d'email invalide")]
+        [Required]
+        [EmailAddress]
         public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "La date de naissance est requise")]
         public DateTime DateOfBirth { get; set; }
 
         public string CurrentPassword { get; set; } = string.Empty;

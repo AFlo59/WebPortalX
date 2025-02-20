@@ -77,6 +77,7 @@ namespace WebPortalX.Infrastructure.Services
                 _logger.LogInformation($"Tentative d'authentification pour {email}");
 
                 var user = await _context.Users
+                    .Include(u => u.Role)
                     .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
 
                 if (user == null)

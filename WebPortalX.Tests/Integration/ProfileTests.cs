@@ -24,12 +24,12 @@ namespace WebPortalX.Tests.Integration
                 UserName = "updateduser",
                 FirstName = "Updated",
                 LastName = "User",
-                Email = "test@example.com",
+                Email = "updated@example.com",
                 DateOfBirth = new DateTime(1990, 1, 1)
             };
 
             // Act
-            var response = await Client.PutAsJsonAsync("/api/users/update", request);
+            var response = await Client.PutAsJsonAsync("/api/users/profile", request);
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -54,7 +54,7 @@ namespace WebPortalX.Tests.Integration
             };
 
             // Act
-            var response = await Client.PutAsJsonAsync("/api/users/update", request);
+            var response = await Client.PutAsJsonAsync("/api/users/profile", request);
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);

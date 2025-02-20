@@ -1,7 +1,8 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 
-public class RegisterRequest
+namespace WebPortalX.Core.Models.Requests;
+
+public class UpdateProfileRequest
 {
     [Required]
     public string UserName { get; set; } = string.Empty;
@@ -16,10 +17,5 @@ public class RegisterRequest
     [EmailAddress]
     public string Email { get; set; } = string.Empty;
 
-    [Required]
-    public string Password { get; set; } = string.Empty;
-
     public DateTime DateOfBirth { get; set; }
-
-    public string Role { get; set; } = "User";  // Par défaut "User" si non spécifié
 } 

@@ -46,10 +46,32 @@ namespace WebPortalX.Tests.Integration
 
         private void SeedTestData(ApplicationDbContext context)
         {
-            // Ajouter un rôle utilisateur par défaut
+            // Ajouter les rôles
             if (!context.Roles.Any())
             {
-                context.Roles.Add(new Role { Name = "User" });
+                context.Roles.AddRange(
+                    new Role { Name = "Admin" },
+                    new Role { Name = "User" }
+                );
+                context.SaveChanges();
+            }
+
+            // Ajouter un utilisateur de test
+            if (!context.Users.Any())
+            {
+                var user = new UserManager
+                {
+                    UserName = "testuser",
+                    FirstName = "Test",
+                    LastName = "User",
+                    Email = "test@example.com",
+                    DateOfBirth = new DateTime(1990, 1, 1),
+                    IsActive = true,
+                    EmailVerified = true,
+                    Role = context.Roles.First(r => r.Name == "Admin")
+                };
+                user.SetPassword("Test123!");
+                context.Users.Add(user);
                 context.SaveChanges();
             }
         }

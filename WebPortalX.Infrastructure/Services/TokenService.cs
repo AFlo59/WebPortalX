@@ -34,7 +34,7 @@ namespace WebPortalX.Infrastructure.Services
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role?.Name ?? "FreeUser"),
+                new Claim(ClaimTypes.Role, user.Role?.Name ?? "User"),
                 new Claim("userId", user.Id.ToString())
             };
 
@@ -60,7 +60,7 @@ namespace WebPortalX.Infrastructure.Services
         public bool ValidateToken(string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_jwtKey);
+            var key = Encoding.UTF8.GetBytes(_jwtKey);
 
             try
             {
@@ -68,8 +68,10 @@ namespace WebPortalX.Infrastructure.Services
                 {
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidIssuer = _issuer,
+                    ValidAudience = _audience,
                     ClockSkew = TimeSpan.Zero
                 }, out SecurityToken validatedToken);
 
@@ -84,7 +86,7 @@ namespace WebPortalX.Infrastructure.Services
         public ClaimsPrincipal GetPrincipalFromToken(string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_jwtKey);
+            var key = Encoding.UTF8.GetBytes(_jwtKey);
 
             try
             {
@@ -92,8 +94,10 @@ namespace WebPortalX.Infrastructure.Services
                 {
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidIssuer = _issuer,
+                    ValidAudience = _audience,
                     ClockSkew = TimeSpan.Zero
                 }, out SecurityToken validatedToken);
             }
