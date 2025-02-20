@@ -12,6 +12,7 @@ using WebPortalX.Frontend.Services;
 using WebPortalX.Frontend.Pages.Account;
 using System.Net.Http.Json;
 using WebPortalX.Core.Models.Requests;
+using WebPortalX.Frontend.Interfaces;
 
 namespace WebPortalX.Frontend.Pages.Account
 {
@@ -58,29 +59,26 @@ namespace WebPortalX.Frontend.Pages.Account
         {
             try
             {
-                var response = await _apiService.GetAsync("/api/users/profile");
+                var response = await _apiService.GetAsync<UserProfileResponse>("/api/users/profile");
                 
-                if (response.IsSuccessStatusCode)
+                if (response.IsSuccess && response.Data != null)
                 {
-                    var userProfile = await response.Content.ReadFromJsonAsync<UserProfileResponse>();
-                    if (userProfile != null)
-                    {
-                        // Remplir les champs avec les données du profil
-                        UserName = userProfile.UserName;
-                        FirstName = userProfile.FirstName;
-                        LastName = userProfile.LastName;
-                        Email = userProfile.Email;
-                        DateOfBirth = userProfile.DateOfBirth;
-                        return Page();
-                    }
+                    var userProfile = response.Data;
+                    // Remplir les champs avec les données du profil
+                    UserName = userProfile.UserName;
+                    FirstName = userProfile.FirstName;
+                    LastName = userProfile.LastName;
+                    Email = userProfile.Email;
+                    DateOfBirth = userProfile.DateOfBirth;
+                    return Page();
                 }
 
-                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                if (!response.IsSuccess)
                 {
                     return RedirectToPage("/Account/Login");
                 }
 
-                throw new Exception($"Erreur lors de la récupération du profil : {response.StatusCode}");
+                throw new Exception($"Erreur lors de la récupération du profil : {response.Message}");
             }
             catch (Exception ex)
             {
@@ -110,15 +108,15 @@ namespace WebPortalX.Frontend.Pages.Account
                     NewPassword = NewPassword
                 };
 
-                var response = await _apiService.PutAsync("/api/users/profile", updateRequest);
+                var response = await _apiService.PutAsync<UserProfileResponse>("/api/users/profile", updateRequest);
 
-                if (response.IsSuccessStatusCode)
+                if (response.IsSuccess)
                 {
                     TempData["SuccessMessage"] = "Profil mis à jour avec succès";
                     return RedirectToPage("/Account/Profile");
                 }
 
-                ModelState.AddModelError(string.Empty, "Erreur lors de la mise à jour du profil");
+                ModelState.AddModelError(string.Empty, response.Message ?? "Erreur lors de la mise à jour du profil");
                 return Page();
             }
             catch (Exception ex)

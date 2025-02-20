@@ -5,6 +5,7 @@ using WebPortalX.Frontend.Services;
 using WebPortalX.Core.Models.Requests;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using WebPortalX.Frontend.Interfaces;
 
 public class LoginModel : PageModel
 {
@@ -57,19 +58,17 @@ public class LoginModel : PageModel
             _logger.LogInformation($"Tentative de connexion pour {Email}");
 
             var loginRequest = new LoginRequest { Email = Email, Password = Password };
-            var response = await _apiService.PostAsync("/api/users/login", loginRequest);
+            var response = await _apiService.PostAsync<LoginResponse>("/api/users/authenticate", loginRequest);
 
-            if (response.IsSuccessStatusCode)
+            if (response.IsSuccess && response.Data?.Token != null)
             {
-                var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
-                if (result?.Token != null)
-                {
-                    await _authService.StoreTokenAsync(result.Token);
-                    return RedirectToPage("/Index");
-                }
+                _logger.LogInformation("Token reçu, stockage...");
+                await _authService.StoreTokenAsync(response.Data.Token);
+                _logger.LogInformation("Redirection vers l'accueil...");
+                return RedirectToPage("/Index");
             }
 
-            ModelState.AddModelError(string.Empty, "Email ou mot de passe incorrect");
+            ModelState.AddModelError(string.Empty, response.Message ?? "Email ou mot de passe incorrect");
             return Page();
         }
         catch (Exception ex)

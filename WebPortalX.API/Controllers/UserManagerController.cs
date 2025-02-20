@@ -16,7 +16,6 @@ using System.Linq;
 using WebPortalX.Core.Models.Requests;
 using WebPortalX.Core.Models.Responses;
 using WebPortalX.Core.Interfaces;
-using WebPortalX.Core.Common;
 using Microsoft.Extensions.Logging;
 
 namespace WebPortalX.API.Controllers

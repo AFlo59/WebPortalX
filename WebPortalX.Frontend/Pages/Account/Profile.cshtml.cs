@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using WebPortalX.Frontend.Services;
 using System.Net.Http.Json;
+using WebPortalX.Frontend.Interfaces;
 
 namespace WebPortalX.Frontend.Pages.Account
 {
@@ -39,20 +40,20 @@ namespace WebPortalX.Frontend.Pages.Account
         {
             try
             {
-                var response = await _apiService.GetAsync("/api/users/profile");
+                var response = await _apiService.GetAsync<UserProfileResponse>("/api/users/profile");
                 
-                if (response.IsSuccessStatusCode)
+                if (response.IsSuccess && response.Data != null)
                 {
-                    UserProfile = await response.Content.ReadFromJsonAsync<UserProfileResponse>();
+                    UserProfile = response.Data;
                     return Page();
                 }
 
-                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                if (!response.IsSuccess)
                 {
                     return RedirectToPage("/Account/Login");
                 }
 
-                throw new Exception($"Erreur lors de la récupération du profil : {response.StatusCode}");
+                throw new Exception($"Erreur lors de la récupération du profil : {response.Message}");
             }
             catch (Exception ex)
             {

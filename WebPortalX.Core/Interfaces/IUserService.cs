@@ -1,6 +1,5 @@
 using WebPortalX.Core.Models;
 using WebPortalX.Core.Models.Requests;
-using WebPortalX.Core.Common;
 
 namespace WebPortalX.Core.Interfaces
 {

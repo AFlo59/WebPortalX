@@ -4,21 +4,15 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
+using WebPortalX.Core.Models.Responses;
+using WebPortalX.Frontend.Interfaces;
 
 namespace WebPortalX.Frontend.Services
 {
-    public interface IApiService
-    {
-        Task<HttpResponseMessage> GetAsync(string endpoint);
-        Task<HttpResponseMessage> PostAsync<T>(string endpoint, T data, string token = null);
-        Task<HttpResponseMessage> PutAsync<T>(string endpoint, T data, string token = null);
-        Task<HttpResponseMessage> DeleteAsync(string endpoint, string token = null);
-    }
-
     public class ApiService : IApiService
     {
         private readonly HttpClient _httpClient;
-        private const string API_BASE_URL = "http://localhost:5165";
         private readonly ILogger<ApiService> _logger;
         private readonly IHttpClientFactory _clientFactory;
         private readonly IHttpContextAccessor _httpContextAccessor;
@@ -31,7 +25,7 @@ namespace WebPortalX.Frontend.Services
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<HttpResponseMessage> GetAsync(string endpoint)
+        public async Task<ApiResponse<T>> GetAsync<T>(string endpoint)
         {
             try
             {
@@ -47,7 +41,7 @@ namespace WebPortalX.Frontend.Services
                 var response = await client.GetAsync(endpoint);
                 _logger.LogInformation($"Réponse reçue : {response.StatusCode}");
 
-                return response;
+                return await HandleResponse<T>(response);
             }
             catch (Exception ex)
             {
@@ -56,23 +50,18 @@ namespace WebPortalX.Frontend.Services
             }
         }
 
-        public async Task<HttpResponseMessage> PostAsync<T>(string endpoint, T data, string token = null)
+        public async Task<ApiResponse<T>> PostAsync<T>(string endpoint, object data)
         {
             try
             {
-                SetAuthorizationHeader(token);
-                var content = new StringContent(
-                    JsonSerializer.Serialize(data), 
-                    Encoding.UTF8, 
-                    "application/json");
+                SetAuthorizationHeader();
+                var content = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, "application/json");
                 
-                var url = $"{API_BASE_URL}{endpoint}";
-                _logger.LogInformation($"Envoi de requête POST à {url}");
-                
-                var response = await _httpClient.PostAsync(url, content);
+                _logger.LogInformation($"Envoi de requête POST à {endpoint}");
+                var response = await _httpClient.PostAsync(endpoint, content);
                 _logger.LogInformation($"Réponse reçue : {response.StatusCode}");
                 
-                return response;
+                return await HandleResponse<T>(response);
             }
             catch (Exception ex)
             {
@@ -81,27 +70,43 @@ namespace WebPortalX.Frontend.Services
             }
         }
 
-        public async Task<HttpResponseMessage> PutAsync<T>(string endpoint, T data, string token = null)
+        public async Task<ApiResponse<T>> PutAsync<T>(string endpoint, object data)
         {
-            SetAuthorizationHeader(token);
-            var content = new StringContent(
-                JsonSerializer.Serialize(data), 
-                Encoding.UTF8, 
-                "application/json");
-            return await _httpClient.PutAsync($"{API_BASE_URL}{endpoint}", content);
+            SetAuthorizationHeader();
+            var content = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, "application/json");
+            var response = await _httpClient.PutAsync(endpoint, content);
+            return await HandleResponse<T>(response);
         }
 
-        public async Task<HttpResponseMessage> DeleteAsync(string endpoint, string token = null)
+        public async Task<ApiResponse<T>> DeleteAsync<T>(string endpoint)
         {
-            SetAuthorizationHeader(token);
-            return await _httpClient.DeleteAsync($"{API_BASE_URL}{endpoint}");
+            SetAuthorizationHeader();
+            var response = await _httpClient.DeleteAsync(endpoint);
+            return await HandleResponse<T>(response);
         }
 
-        private void SetAuthorizationHeader(string token)
+        private void SetAuthorizationHeader(string token = null)
         {
             _httpClient.DefaultRequestHeaders.Authorization = string.IsNullOrEmpty(token) 
                 ? null 
                 : new AuthenticationHeaderValue("Bearer", token);
+        }
+
+        private async Task<ApiResponse<T>> HandleResponse<T>(HttpResponseMessage response)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var data = JsonSerializer.Deserialize<T>(content);
+                return new ApiResponse<T> { IsSuccess = true, Data = data };
+            }
+
+            return new ApiResponse<T> 
+            { 
+                IsSuccess = false, 
+                Message = content 
+            };
         }
     }
 } 

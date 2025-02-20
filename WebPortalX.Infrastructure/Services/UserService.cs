@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using WebPortalX.Core.Interfaces;
 using WebPortalX.Core.Models;
 using WebPortalX.Core.Models.Requests;
-using WebPortalX.Core.Common;
 using WebPortalX.Infrastructure.Data;
 using BC = BCrypt.Net.BCrypt;
 using System.Security.Claims;
@@ -74,31 +73,22 @@ namespace WebPortalX.Infrastructure.Services
         {
             try
             {
-                _logger.LogInformation($"Tentative d'authentification pour {email}");
-
                 var user = await _context.Users
                     .Include(u => u.Role)
-                    .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
+                    .FirstOrDefaultAsync(u => u.Email == email);
 
-                if (user == null)
+                if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
                 {
-                    _logger.LogWarning($"Utilisateur non trouvé : {email}");
-                    return ServiceResult<UserManager>.Error("Email ou mot de passe incorrect");
+                    return ServiceResult<UserManager>.ErrorResult("Email ou mot de passe incorrect");
                 }
 
-                if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-                {
-                    _logger.LogWarning($"Mot de passe incorrect pour {email}");
-                    return ServiceResult<UserManager>.Error("Email ou mot de passe incorrect");
-                }
-
-                _logger.LogInformation($"Authentification réussie pour {email}");
-                return ServiceResult<UserManager>.Ok(user);
+                var token = _tokenService.GenerateToken(user);
+                return ServiceResult<UserManager>.SuccessResult(user, token);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Erreur lors de l'authentification de {email}");
-                throw;
+                _logger.LogError($"Erreur lors de l'authentification : {ex.Message}");
+                return ServiceResult<UserManager>.ErrorResult("Une erreur est survenue lors de l'authentification");
             }
         }
 

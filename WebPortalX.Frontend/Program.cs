@@ -3,31 +3,16 @@ using WebPortalX.Frontend.Middleware;
 using WebPortalX.Frontend.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
+using WebPortalX.Frontend.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Au début, après la création du builder
+builder.WebHost.UseUrls("http://localhost:5076");
+
 // Services de base
 builder.Services.AddRazorPages();
-builder.Services.AddHttpContextAccessor();
-
-// Configuration du client HTTP
-builder.Services.AddHttpClient("API", client =>
-{
-    client.BaseAddress = new Uri("http://localhost:5166/");
-});
-
-// Services personnalisés
-builder.Services.AddScoped<IApiService, ApiService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-
-// Configuration des sessions
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-});
+builder.Services.AddHttpClient();
 
 // Configuration de l'authentification
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -38,12 +23,33 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.AccessDeniedPath = "/Account/AccessDenied";
     });
 
+// Enregistrement des services
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IApiService, ApiService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+// Configuration des options HTTP client
+builder.Services.AddHttpClient("API", client =>
+{
+    client.BaseAddress = new Uri("http://localhost:5166/");
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
+// Configuration des sessions
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+});
+
 // Configuration CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowApiOrigin",
         policyBuilder => policyBuilder
-            .WithOrigins("http://localhost:5165")
+            .WithOrigins("http://localhost:5166")
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials());
@@ -74,7 +80,4 @@ app.UseCustomAuthentication();
 app.UseErrorHandling();
 
 app.MapRazorPages();
-
 app.Run();
-
-builder.WebHost.UseUrls("http://localhost:5076");
