@@ -3,17 +3,37 @@
 ## Architecture
 ```
 WebPortalX/
+├── .cursorrules
+├── README.md
+├── roadmap.md
 ├── .gitignore
 ├── WebPortalX.sln
 ├── structure.md
 ├── WebPortalX.API/
 │   ├── Controllers/
 │   │   └── UserManagerController.cs
+│   ├── Filters/
+│   │   └── AuthorizationFilter.cs
+│   ├── Properties/
+│   │   └── launchSettings.json
+│   ├── obj/
+│   ├── bin/
+│   │   └── Debug/
+│   │   │   └── net8.0/
 │   ├── Program.cs
 │   ├── appsettings.json
 │   ├── appsettings.Development.json
+│   ├── WebPortalX.API.csproj
+│   ├── WebPortalX.API.http
+│   ├── webportalx.db
+│   ├── .env
 │   └── .env.example
 ├── WebPortalX.Core/
+│   ├── WebPortalX.Core.csproj
+│   ├── obj/
+│   ├── bin/
+│   │   └── Debug/
+│   │   │   └── net8.0/
 │   ├── Models/
 │   │   ├── AbstractEntity.cs
 │   │   ├── AbstractTimestamp.cs
@@ -21,62 +41,125 @@ WebPortalX/
 │   │   ├── RoleManager.cs
 │   │   ├── UserManager.cs
 │   │   ├── Requests/
+│   │   │   ├── ForgotPasswordRequest.cs
 │   │   │   ├── LoginRequest.cs
 │   │   │   ├── RegisterRequest.cs
 │   │   │   ├── ResetPasswordRequest.cs
-│   │   │   ├── ForgotPasswordRequest.cs
-│   │   │   └── UpdateUserRequest.cs
+│   │   │   ├── UpdateProfileRequest.cs
+│   │   │   ├── UpdateUserRequest.cs
+│   │   │   └── UserRegisterRequest.cs
 │   │   └── Responses/
-│   │       └── UserProfileResponse.cs
+│   │   │   ├── LoginResponse.cs
+│   │   │   ├── RefreshTokenResponse.cs
+│   │   │   └── UserProfileResponse.cs
+│   │   └── Settings/
+│   │       └── EmailSettings.cs
 │   └── Interfaces/
 │       ├── IEmailService.cs
-│       └── ITokenService.cs
+│       ├── ITokenService.cs
+│       └── IUserService.cs
+│   └── Common/
+│       └── ServiceResult.cs
 ├── WebPortalX.Infrastructure/
+│   ├── WebPortalX.Infrastructure.csproj
+│   ├── bin/
+│   │   └── Debug/
+│   │   │   └── net8.0/
 │   ├── Data/
-│   │   └── ApplicationDbContext.cs
+│   │   └── Configurations/
+│   │   │   └── UserConfiguration.cs
+│   │   ├── ApplicationDbContext.cs
+│   │   └── DbInitializer.cs
 │   ├── Services/
 │   │   ├── EmailService.cs
-│   │   └── TokenService.cs
-│   └── Repositories/
-│       └── UserRepository.cs
-└── WebPortalX.Frontend/
-    ├── Pages/
-    │   ├── Index.cshtml
-    │   ├── Index.cshtml.cs
-    │   ├── Privacy.cshtml
-    │   ├── Privacy.cshtml.cs
-    │   ├── Account/
-    │   │   ├── Login.cshtml
-    │   │   ├── Login.cshtml.cs
-    │   │   ├── Register.cshtml
-    │   │   ├── Register.cshtml.cs
-    │   │   ├── Profile.cshtml
-    │   │   ├── Profile.cshtml.cs
-    │   │   ├── EditProfile.cshtml
-    │   │   ├── EditProfile.cshtml.cs
-    │   │   ├── ForgotPassword.cshtml
-    │   │   ├── ForgotPassword.cshtml.cs
-    │   │   ├── ResetPassword.cshtml
-    │   │   └── ResetPassword.cshtml.cs
-    │   └── Shared/
-    │       ├── _Layout.cshtml
-    │       └── _ValidationScriptsPartial.cshtml
-    ├── wwwroot/
-    │   ├── css/
-    │   │   ├── site.css
-    │   │   └── rpg-theme.css
-    │   ├── js/
-    │   │   └── site.js
-    │   └── images/
-    │       ├── avatar.png
-    │       ├── hero-bg.jpg
-    │       └── logo.png
-    ├── Middleware/
-    │   └── AuthenticationMiddleware.cs
-    ├── Services/
-    │   └── ApiService.cs
-    └── Attributes/
-        └── AuthorizeAttribute.cs
+│   │   ├── TokenService.cs
+│   │   └── UserService.cs
+│   └── Migrations/
+│   │   ├── 20250219130842_AddRoleEntity.cs
+│   │   ├── 20250219130842_AddRoleEntity.Designer.cs
+│   │   └── ApplicationDbContextModelSnapshot.cs
+│   └── WebPortalX.Infrastructure/
+│       ├── WebPortalX.Infrastructure.csproj
+│       └── Class1.cs
+├── WebPortalX.Frontend/
+│   ├── Program.cs
+│   ├── obj/
+│   ├── bin/
+│   │   └── Debug/
+│   │       └── net8.0/
+│   ├── Properties/
+│   │   └── launchSettings.json
+│   ├── appsettings.json
+│   ├── appsettings.Development.json
+│   ├── WebPortalX.Frontend.csproj
+│   ├── Pages/
+│   │   ├── _ViewImports.cshtml
+│   │   ├── _ViewStart.cshtml
+│   │   ├── Error.cshtml
+│   │   ├── Error.cshtml.cs
+│   │   ├── Index.cshtml
+│   │   ├── Index.cshtml.cs
+│   │   ├── Privacy.cshtml
+│   │   ├── Privacy.cshtml.cs
+│   │   ├── Account/
+│   │   │   ├── Login.cshtml
+│   │   │   ├── Login.cshtml.cs
+│   │   │   ├── Register.cshtml
+│   │   │   ├── Register.cshtml.cs
+│   │   │   ├── Profile.cshtml
+│   │   │   ├── Profile.cshtml.cs
+│   │   │   ├── EditProfile.cshtml
+│   │   │   ├── EditProfile.cshtml.cs
+│   │   │   ├── ForgotPassword.cshtml
+│   │   │   ├── ForgotPassword.cshtml.cs
+│   │   │   ├── ResetPassword.cshtml
+│   │   │   └── ResetPassword.cshtml.cs
+│   │   └── Shared/
+│   │       ├── _Layout.cshtml
+│   │       ├── _Layout.cshtml.css
+│   │       └── _ValidationScriptsPartial.cshtml
+│   ├── wwwroot/
+│   │   ├── favicon.ico
+│   │   ├── css/
+│   │   │   ├── site.css
+│   │   │   └── rpg-theme.css
+│   │   ├── js/
+│   │   │   └── site.js
+│   │   ├── lib/
+│   │   │   ├── bootstrap/
+│   │   │   ├── jquery/
+│   │   │   ├── jquery-validation/
+│   │   │   └── jquery-validation-unobtrusive/
+│   │   └── images/
+│   │       ├── avatar.png
+│   │       ├── hero-bg.jpg
+│   │       └── logo.png
+│   ├── Middleware/
+│   │   ├── AuthenticationMiddleware.css
+│   │   ├── AuthenticationStateMiddleware.css
+│   │   └── ErrorHandlingMiddleware.cs
+│   ├── Services/
+│   │   ├── ApiService.css
+│   │   └── AuthService.cs
+│   └── Attributes/
+│       └── AuthorizeAttribute.cs
+├── WebPortalX.Tests/
+│   ├── Program.cs
+│   ├── obj/
+│   ├── bin/
+│   │   └── Debug/
+│   │       ├── net6.0/
+│   │       └── net8.0/
+│   ├── Account/
+│   │   └── EditProfileTests.cs
+│   ├── WebPortalX.Tests.csproj
+│   ├── Integration/
+│   │   ├── AuthenticationTests.cs
+│   │   ├── IntegrationTestBase.cs
+│   │   ├── ProfileTests.cs
+│   │   └── TestWebApplicationFactory.cs
+│   └── UnitTest1.cs
+
 ```
 
 ## TODO List
