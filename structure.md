@@ -75,12 +75,9 @@ WebPortalX/
 │   │   ├── TokenService.cs
 │   │   └── UserService.cs
 │   └── Migrations/
-│   │   ├── 20250219130842_AddRoleEntity.cs
-│   │   ├── 20250219130842_AddRoleEntity.Designer.cs
-│   │   └── ApplicationDbContextModelSnapshot.cs
-│   └── WebPortalX.Infrastructure/
-│       ├── WebPortalX.Infrastructure.csproj
-│       └── Class1.cs
+│       ├── 20250219130842_AddRoleEntity.cs
+│       ├── 20250219130842_AddRoleEntity.Designer.cs
+│       └── ApplicationDbContextModelSnapshot.cs
 ├── WebPortalX.Frontend/
 │   ├── Program.cs
 │   ├── obj/
