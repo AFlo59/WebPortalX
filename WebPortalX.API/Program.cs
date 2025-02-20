@@ -16,8 +16,8 @@ using WebPortalX.API.Filters;
 // Rendre les types internes visibles pour le projet de test
 [assembly: InternalsVisibleTo("WebPortalX.Tests")]
 
-// Rendre la classe Program publique
-public class Program 
+// Rendre la classe Program publique et partielle
+public partial class Program 
 { 
     public static async Task Main(string[] args)
     {
@@ -26,11 +26,11 @@ public class Program
         // Configurer l'URL d'écoute
         builder.WebHost.UseUrls("http://localhost:5165");
 
-        // Configuration manuelle des variables d'environnement
-        const string envFile = ".env";
-        if (File.Exists(envFile))
+        // Charger les variables d'environnement depuis .env
+        var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
+        if (File.Exists(envPath))
         {
-            foreach (var line in File.ReadAllLines(envFile))
+            foreach (var line in File.ReadAllLines(envPath))
             {
                 var parts = line.Split('=', 2);
                 if (parts.Length == 2)
@@ -39,40 +39,6 @@ public class Program
                 }
             }
         }
-
-        // ✅ Ajouter la documentation Swagger
-        builder.Services.AddSwaggerGen(c =>
-        {
-            c.SwaggerDoc("v1", new OpenApiInfo { Title = "WebPortalX API", Version = "v1" });
-            
-            // Ajouter la sécurité JWT à Swagger
-            c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-            {
-                Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
-                Name = "Authorization",
-                In = ParameterLocation.Header,
-                Type = SecuritySchemeType.ApiKey,
-                Scheme = "Bearer"
-            });
-
-            c.AddSecurityRequirement(new OpenApiSecurityRequirement()
-            {
-                {
-                    new OpenApiSecurityScheme
-                    {
-                        Reference = new OpenApiReference
-                        {
-                            Type = ReferenceType.SecurityScheme,
-                            Id = "Bearer"
-                        },
-                        Scheme = "oauth2",
-                        Name = "Bearer",
-                        In = ParameterLocation.Header,
-                    },
-                    new List<string>()
-                }
-            });
-        });
 
         Console.WriteLine($"📂 Chemin actuel : {Directory.GetCurrentDirectory()}");
         Console.WriteLine($"🔍 JWT_SECRET_KEY (env) : {Environment.GetEnvironmentVariable("JWT_SECRET_KEY")}");
@@ -86,7 +52,7 @@ public class Program
             jwtSecret = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
 
             // ✅ Vérifier si `.env` contient déjà une clé JWT, sinon l'ajouter
-            File.AppendAllText(envFile, $"\nJWT_SECRET_KEY={jwtSecret}");
+            File.AppendAllText(envPath, $"\nJWT_SECRET_KEY={jwtSecret}");
             Console.WriteLine("🔑 Nouvelle clé JWT générée et sauvegardée dans .env !");
         }
         else
@@ -167,18 +133,30 @@ public class Program
         // ✅ Créer l'application
         var app = builder.Build();
 
-        // Initialiser la base de données
+        // Appliquer les migrations et initialiser la base de données
         using (var scope = app.Services.CreateScope())
         {
-            var services = scope.ServiceProvider;
             try
             {
-                await DbInitializer.Initialize(services);
-                Console.WriteLine("✅ Base de données initialisée avec succès !");
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                
+                // Créer la base de données et appliquer les migrations
+                if (db.Database.EnsureCreated())
+                {
+                    Console.WriteLine("✅ Base de données créée");
+                }
+                
+                // Initialiser les données
+                await DbInitializer.Initialize(app.Services);
+                Console.WriteLine("✅ Données initiales créées");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Erreur lors de l'initialisation de la base de données : {ex.Message}");
+                Console.WriteLine($"❌ Erreur : {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Inner Exception : {ex.InnerException.Message}");
+                }
             }
         }
 

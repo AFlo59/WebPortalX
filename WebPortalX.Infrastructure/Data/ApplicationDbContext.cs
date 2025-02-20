@@ -15,9 +15,9 @@ namespace WebPortalX.Infrastructure.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<Role>()
-                .HasMany(r => r.Users)
-                .WithOne(u => u.Role)
+            modelBuilder.Entity<UserManager>()
+                .HasOne(u => u.Role)
+                .WithMany()
                 .HasForeignKey(u => u.RoleId);
         }
     }
